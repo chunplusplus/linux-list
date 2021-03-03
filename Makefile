@@ -3,14 +3,31 @@ $(GIT_HOOK): scripts/install-git-hooks
 	@$<
 	@echo
 
-.PHONY: all check clean
+.PHONY: all check clean example
 all: $(GIT_HOOK) check
 .DEFAULT_GOAL := all
 
 include common.mk
 
-CFLAGS = -I./include
+CFLAGS = -I./include -I./private
 CFLAGS += -std=c99 -pedantic -Wall -W -Werror
+
+EXAMPLES = \
+    insert-sort \
+    quick-sort
+
+EXAMPLES := $(addprefix examples/,$(EXAMPLES))
+
+deps2 := $(EXAMPLES:%=%.o.d)
+
+EXAMPLES_OK = $(EXAMPLES:=.ok)
+
+example: $(EXAMPLES_OK)
+
+$(EXAMPLES_OK): %.ok: %
+	$(Q)$(PRINTF) "*** Validating $< ***\n"
+	$(Q)./$< && $(PRINTF) "\t$(PASS_COLOR)[ Verified ]$(NO_COLOR)\n"
+	@touch $@
 
 TESTS = \
     containerof \
@@ -60,8 +77,14 @@ $(TESTS): %: %.o
 	$(VECHO) "  LD\t$@\n"
 	$(Q)$(CC) -o $@ $^ $(LDFLAGS)
 
+$(EXAMPLES): %: %.o
+	$(VECHO) "  LD\t$@\n"
+	$(Q)$(CC) -o $@ $^ $(LDFAGS)
+
 clean:
 	$(VECHO) "  Cleaning...\n"
 	$(Q)$(RM) $(TESTS) $(TESTS_OK) $(TESTS:=.o) $(deps)
+	$(Q)$(RM) $(EXAMPLES) $(EXAMPLES_OK) $(EXAMPLES:=.o) $(deps2)
 
 -include $(deps)
+-include $(deps2)
