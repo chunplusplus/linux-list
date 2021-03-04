@@ -1,8 +1,11 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "list.h"
 
 #include "common.h"
+
+#define MAX_LEVELS 300
 
 static uint16_t values[256];
 
@@ -12,28 +15,62 @@ static void list_qsort(struct list_head *head)
     struct listitem *pivot;
     struct listitem *item = NULL, *is = NULL;
 
+
     if (list_empty(head) || list_is_singular(head))
         return;
 
-    INIT_LIST_HEAD(&list_less);
-    INIT_LIST_HEAD(&list_greater);
+    void *beg[MAX_LEVELS], *end[MAX_LEVELS];
+    beg[0] = head->next;
+    end[0] = head->prev;
+    int cur_index = 0;
 
-    pivot = list_first_entry(head, struct listitem, list);
-    list_del(&pivot->list);
+    do {
+        INIT_LIST_HEAD(&list_less);
+        INIT_LIST_HEAD(&list_greater);
 
-    list_for_each_entry_safe (item, is, head, list) {
-        if (cmpint(&item->i, &pivot->i) < 0)
-            list_move_tail(&item->list, &list_less);
-        else
-            list_move(&item->list, &list_greater);
-    }
+        // range for quick sort, before for keeping the nodes previous the range
+        struct list_head before, range;
 
-    list_qsort(&list_less);
-    list_qsort(&list_greater);
+        INIT_LIST_HEAD(&before);
+        INIT_LIST_HEAD(&range);
 
-    list_add(&pivot->list, head);
-    list_splice(&list_less, head);
-    list_splice_tail(&list_greater, head);
+        list_cut_position(&before, head, beg[cur_index]);
+        list_cut_position(&range, head, end[cur_index]);
+
+        pivot = list_last_entry(&before, struct listitem, list);
+        // printf("cur_index: %d, pivot value: %d\n", cur_index, pivot->i);
+
+        list_del(&(pivot->list));
+
+        list_for_each_entry_safe (item, is, &range, list) {
+            if (cmpint(&item->i, &pivot->i) < 0)
+                list_move_tail(&item->list, &list_less);
+            else
+                list_move(&item->list, &list_greater);
+        }
+
+        cur_index--;
+
+        // record next move from list_less
+        if (!(list_empty(&list_less) || list_is_singular(&list_less))) {
+            cur_index++;
+            beg[cur_index] = list_less.next;
+            end[cur_index] = list_less.prev;
+        }
+
+        // record next move from list_greater
+        if (!(list_empty(&list_greater) || list_is_singular(&list_greater))) {
+            cur_index++;
+            beg[cur_index] = list_greater.next;
+            end[cur_index] = list_greater.prev;
+        }
+
+        list_splice(&list_greater, head);
+        list_add(&pivot->list, head);
+        list_splice(&list_less, head);
+        list_splice(&before, head);
+
+    } while (cur_index >= 0);
 }
 
 int main(void)
