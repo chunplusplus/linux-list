@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <math.h>
+
+#include <time.h>
 //#include "common.h"
 #include "list.h"
 
@@ -54,6 +58,15 @@ static void list_merge(struct list_head *lhs,
     list_splice_tail(list_empty(lhs) ? rhs : lhs, head);
 }
 
+void list_print(struct list_head *q)
+{
+    struct list_head *node;
+    list_for_each (node, q) {
+        printf("%s ", list_entry(node, list_ele_t, list)->value);
+    }
+    printf("\n");
+}
+
 void list_merge_sort(queue_t *q)
 {
     if (list_is_singular(&q->list))
@@ -70,11 +83,56 @@ void list_merge_sort(queue_t *q)
     list_splice_tail(&sorted, &q->list);
 }
 
+void list_merge_sort_iterate(queue_t *q)
+{
+    if (list_is_singular(&q->list))
+        return;
+
+    int pow_2 = 1;
+
+    while (pow_2 < q->size) {
+        struct list_head sorted, left, right;
+        INIT_LIST_HEAD(&sorted);
+
+        while (!list_empty(&q->list)) {
+
+            INIT_LIST_HEAD(&left);
+            INIT_LIST_HEAD(&right);
+
+            struct list_head *cut_point = &q->list;
+
+            for (int i = 0; i < pow_2 && cut_point->next != &q->list; i++)
+                cut_point = cut_point->next;
+
+            list_cut_position(&left, &q->list, cut_point);
+
+            cut_point = &q->list;
+            for (int i = 0; i < pow_2 && cut_point->next != &q->list; i++)
+                cut_point = cut_point->next;
+
+            list_cut_position(&right, &q->list, cut_point);
+
+            if (list_empty(&right)) {
+                list_splice_tail(&left, &sorted);
+            } else {
+                struct list_head sorted_run;
+                list_merge(&left, &right, &sorted_run);
+                list_splice_tail(&sorted_run, &sorted);
+            }
+        }
+
+        INIT_LIST_HEAD(&q->list);
+        list_splice_tail(&sorted, &q->list);
+        pow_2 = pow_2 << 1;
+    }
+}
 
 static bool validate(queue_t *q)
 {
     struct list_head *node;
     list_for_each (node, &q->list) {
+        // printf("%s ", list_entry(node, list_ele_t, list)->value);
+
         if (node->next == &q->list)
             break;
         if (strcmp(list_entry(node, list_ele_t, list)->value,
@@ -151,7 +209,14 @@ int main(void)
         q_insert_head(q, buf);
     fclose(fp);
 
-    list_merge_sort(q);
+    clock_t t;
+    t = clock();
+    // list_merge_sort(q);
+    list_merge_sort_iterate(q);
+
+    t = clock() - t;
+
+    printf("%f seconds token to sort\n", (double) t / CLOCKS_PER_SEC);
     assert(validate(q));
 
     q_free(q);

@@ -10,7 +10,7 @@ all: $(GIT_HOOK) check
 include common.mk
 
 CFLAGS = -I./include -I./private
-CFLAGS += -pedantic -Wall -W -Werror
+#CFLAGS += -pedantic -Wall -W -Werror
 
 EXAMPLES = \
     insert-sort \
@@ -80,7 +80,7 @@ $(TESTS): %: %.o
 
 $(EXAMPLES): %: %.o
 	$(VECHO) "  LD\t$@\n"
-	$(Q)$(CC) -o $@ $^ $(LDFAGS)
+	$(Q)$(CC) -o $@ $^ $(LDFAGS) -lm
 
 clean:
 	$(VECHO) "  Cleaning...\n"
