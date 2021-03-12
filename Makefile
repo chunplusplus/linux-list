@@ -10,11 +10,12 @@ all: $(GIT_HOOK) check
 include common.mk
 
 CFLAGS = -I./include -I./private
-CFLAGS += -std=c99 -pedantic -Wall -W -Werror
+CFLAGS += -pedantic -Wall -W -Werror
 
 EXAMPLES = \
     insert-sort \
-    quick-sort
+    quick-sort \
+    merge-sort
 
 EXAMPLES := $(addprefix examples/,$(EXAMPLES))
 

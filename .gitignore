@@ -28,3 +28,4 @@ tests/list_splice_tail_init
 examples/*.ok
 examples/insert-sort
 examples/quick-sort
+examples/merge-sort
